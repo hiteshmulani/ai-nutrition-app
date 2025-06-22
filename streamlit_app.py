@@ -17,6 +17,9 @@ st.markdown("""
 st.title("🥗 AI Nutrition Coach")
 st.subheader("Minimal. Smart. Personalized.")
 
+# Use Streamlit Secrets for API Key
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 # Meal log setup
 LOG_FILE = "meal_log.json"
 try:
@@ -25,20 +28,18 @@ try:
 except FileNotFoundError:
     meal_log = []
 
-# TABS
+# Tabs
 tabs = st.tabs(["Analyze Meal", "Recipe Assistant", "Meal Log"])
 
 # 1. Meal Analyzer
 with tabs[0]:
     st.markdown("**Analyze your meal** and get nutrition feedback.")
-    api_key = st.text_input("🔐 OpenAI API Key", type="password")
     meal = st.text_area("🍽️ What did you eat?", placeholder="e.g. jowar roti, paneer bhurji")
     if st.button("Analyze Meal"):
-        if not api_key or not meal:
-            st.error("Enter your API key and meal.")
+        if not meal:
+            st.error("Please enter your meal description.")
         else:
             try:
-                client = OpenAI(api_key=api_key)
                 response = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
@@ -56,14 +57,12 @@ with tabs[0]:
 # 2. Recipe Assistant
 with tabs[1]:
     st.markdown("**Get a healthy recipe** based on your inputs.")
-    api_key2 = st.text_input("🔐 OpenAI API Key", type="password", key="recipe_key")
     query = st.text_area("🍳 Ingredients or Goal", placeholder="e.g. jowar flour, curd, capsicum")
     if st.button("Get Recipe"):
-        if not api_key2 or not query:
-            st.error("Enter API key & query.")
+        if not query:
+            st.error("Please enter your query.")
         else:
             try:
-                client = OpenAI(api_key=api_key2)
                 response = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
@@ -96,5 +95,3 @@ with tabs[2]:
         st.markdown("### 🕓 Logged Meals")
         for entry in reversed(meal_log[-10:]):
             st.write(f"📅 {entry['time'][:16]} — 🍽️ {entry['meal']}")
-
-
