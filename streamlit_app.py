@@ -64,7 +64,7 @@ with tabs[1]:
         else:
             try:
                 response = client.chat.completions.create(
-                    model="gpt-4",
+                    model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "You are a healthy recipe assistant."},
                         {"role": "user", "content": f"Suggest a nutritious recipe using: {query}. Include title, ingredients, steps, nutrition."}
