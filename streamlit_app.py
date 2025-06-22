@@ -1,9 +1,10 @@
 import streamlit as st
-import openai
 import json
 from datetime import datetime
+from openai import OpenAI
 
 st.set_page_config(page_title="AI Nutrition Coach", layout="centered")
+
 st.markdown("""
 <style>
 .main {background-color: #f8f8f8;}
@@ -16,7 +17,7 @@ st.markdown("""
 st.title("🥗 AI Nutrition Coach")
 st.subheader("Minimal. Smart. Personalized.")
 
-# Load or create meal log file
+# Meal log setup
 LOG_FILE = "meal_log.json"
 try:
     with open(LOG_FILE, "r") as f:
@@ -24,9 +25,11 @@ try:
 except FileNotFoundError:
     meal_log = []
 
-tab = st.tabs(["Analyze Meal", "Recipe Assistant", "Meal Log"])
+# TABS
+tabs = st.tabs(["Analyze Meal", "Recipe Assistant", "Meal Log"])
 
-with tab[0]:
+# 1. Meal Analyzer
+with tabs[0]:
     st.markdown("**Analyze your meal** and get nutrition feedback.")
     api_key = st.text_input("🔐 OpenAI API Key", type="password")
     meal = st.text_area("🍽️ What did you eat?", placeholder="e.g. jowar roti, paneer bhurji")
@@ -34,20 +37,24 @@ with tab[0]:
         if not api_key or not meal:
             st.error("Enter your API key and meal.")
         else:
-            openai.api_key = api_key
-            resp = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a helpful nutritionist AI."},
-                    {"role": "user", "content": f"Analyze this meal: {meal}. Provide calories, macros, vitamins, and suggestions."}
-                ],
-                temperature=0.7,
-                max_tokens=300
-            )
-            st.markdown("### 🤖 Nutrition Coach says:")
-            st.markdown(resp.choices[0].message.content)
+            try:
+                client = OpenAI(api_key=api_key)
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful nutritionist AI."},
+                        {"role": "user", "content": f"Analyze this meal: {meal}. Provide calories, macros, vitamins, and suggestions."}
+                    ],
+                    temperature=0.7,
+                    max_tokens=300
+                )
+                st.markdown("### 🤖 Nutrition Coach says:")
+                st.markdown(response.choices[0].message.content)
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
 
-with tab[1]:
+# 2. Recipe Assistant
+with tabs[1]:
     st.markdown("**Get a healthy recipe** based on your inputs.")
     api_key2 = st.text_input("🔐 OpenAI API Key", type="password", key="recipe_key")
     query = st.text_area("🍳 Ingredients or Goal", placeholder="e.g. jowar flour, curd, capsicum")
@@ -55,31 +62,39 @@ with tab[1]:
         if not api_key2 or not query:
             st.error("Enter API key & query.")
         else:
-            openai.api_key = api_key2
-            resp2 = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a healthy recipe assistant."},
-                    {"role": "user", "content": f"Suggest a nutritious recipe using: {query}. Include title, ingredients, steps, nutrition."}
-                ],
-                temperature=0.7,
-                max_tokens=400
-            )
-            st.markdown("### 🍴 Recipe Assistant says:")
-            st.markdown(resp2.choices[0].message.content)
+            try:
+                client = OpenAI(api_key=api_key2)
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are a healthy recipe assistant."},
+                        {"role": "user", "content": f"Suggest a nutritious recipe using: {query}. Include title, ingredients, steps, nutrition."}
+                    ],
+                    temperature=0.7,
+                    max_tokens=400
+                )
+                st.markdown("### 🍴 Recipe Assistant says:")
+                st.markdown(response.choices[0].message.content)
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
 
-with tab[2]:
+# 3. Meal Log
+with tabs[2]:
     st.markdown("**Your meal history**")
-    meal = st.text_input("🍽️ Log a meal:", placeholder="e.g. grilled paneer with salad")
+    new_meal = st.text_input("📋 Log a new meal:", placeholder="e.g. grilled paneer with salad")
     if st.button("Log My Meal"):
-        if not meal:
-            st.error("Enter a meal description.")
+        if not new_meal:
+            st.error("Please enter a meal to log.")
         else:
-            entry = {"meal": meal, "time": datetime.now().isoformat()}
+            entry = {"meal": new_meal, "time": datetime.now().isoformat()}
             meal_log.append(entry)
             with open(LOG_FILE, "w") as f:
                 json.dump(meal_log, f)
             st.success("Meal logged!")
+
     if meal_log:
-        st.write(meal_log)
+        st.markdown("### 🕓 Logged Meals")
+        for entry in reversed(meal_log[-10:]):
+            st.write(f"📅 {entry['time'][:16]} — 🍽️ {entry['meal']}")
+
 
